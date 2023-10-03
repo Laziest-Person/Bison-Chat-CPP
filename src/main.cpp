@@ -152,7 +152,7 @@ static void remove_prompt_do_not_run_code(GtkWidget *widget, UIElements *element
  * ------------------------------------------------------------------------------------------*/
 
 // This struct is used to pass data to and from the thread function.
-struct ThreadData
+struct ReceiveThreadData
 {
     GtkWidget *window_hbox;
     GtkWidget *message_vbox;
@@ -179,7 +179,7 @@ struct ThreadData
  *
  * @throws None.
  */
-void add_message_to_message_vbox(ThreadData *data)
+void add_message_to_message_vbox(ReceiveThreadData *data)
 {
 
     data->mtx->lock();
@@ -220,7 +220,7 @@ void add_message_to_message_vbox(ThreadData *data)
 
     // If there's code, add a prompt in the right side of the window to ask about running it.
     //-------------------------------------------------------------------------------------------
-    /*if ( data->code_to_run_exists )
+    if ( data->code_to_run_exists )
     {
     
         // Create the prompt label
@@ -263,7 +263,8 @@ void add_message_to_message_vbox(ThreadData *data)
 
         //Add the prompt vbox to the window hbox
         gtk_box_pack_end(GTK_BOX(data->window_hbox), prompt_vbox, FALSE, FALSE, 0);
-    }*/
+        gtk_widget_show_all(data->window_hbox);
+    }
 
     data->mtx->unlock();
 
@@ -272,13 +273,13 @@ void add_message_to_message_vbox(ThreadData *data)
     return;
 }
 
-/* Passes the gpointer converting to ThreadData struct
+/* Passes the gpointer converting to ReceiveThreadData struct
  * from the other thread on to the add_message_to_message_vbox function.
  * (Needed for GTK Main thread and other thread conflict issues)
  */
 gboolean add_message_to_message_vbox_wrapper(gpointer user_data)
 {
-    ThreadData *data = (ThreadData *)user_data;
+    ReceiveThreadData *data = (ReceiveThreadData *)user_data;
     add_message_to_message_vbox(data);
     return FALSE;
 }
@@ -402,14 +403,14 @@ vector<smatch> find_markdown_bash(string message)
 /*
  * This function is responsible for running the message completion query.
  *
- * @param thread_data The ThreadData pointer to the thread data
+ * @param thread_data The ReceiveThreadData pointer to the thread data
  *
  * @throws None.
  */
-void receive_thread_function(ThreadData *thread_data)
+void receive_thread_function(ReceiveThreadData *thread_data)
 {
 
-    ThreadData *data = (ThreadData *)thread_data;
+    ReceiveThreadData *data = (ReceiveThreadData *)thread_data;
     data->mtx->lock();
     string system_message = data->chat_msgs->retreive_system_message();
     data->mtx->unlock();
@@ -559,7 +560,7 @@ void receive_thread_function(ThreadData *thread_data)
  * This section is for code-execution thread variables and related functions only
  * ------------------------------------------------------------------------------------------*/
 
-    struct ExecutionThreadData
+    struct ExecutionReceiveThreadData
     {
         
     };
@@ -613,7 +614,7 @@ static void send_message(GtkWidget *widget, UIElements *elements)
     write_message_text_to_vbox(elements->message_vbox, elements->scrolled_window, ("\nYou: " + message + "\n").c_str());
 
     // Thread stuff
-    ThreadData *thread_data = new ThreadData;
+    ReceiveThreadData *thread_data = new ReceiveThreadData;
     thread_data->mtx = new mutex;
     thread_data->message_vbox = elements->message_vbox;
     thread_data->scrolled_window = elements->scrolled_window;
