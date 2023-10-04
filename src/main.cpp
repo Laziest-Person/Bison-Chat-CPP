@@ -25,11 +25,57 @@ string user;
 string interpreter_name;
 chat chat_history;
 
-struct UIElements {
+struct UIElements
+{
     GtkWidget *message_vbox;
     GtkWidget *window_hbox;
     GtkWidget *scrolled_window;
 };
+
+struct ExecutionReceiveThreadData
+{
+        
+};
+
+// This struct is used to pass data to and from the thread function.
+struct ReceiveThreadData
+{
+    GtkWidget *window_hbox;
+    GtkWidget *message_vbox;
+    GtkWidget *scrolled_window;
+    GAsyncQueue *queue;
+    GMainContext *context;
+    mutex *mtx;
+    string completion_url;
+    chat *chat_msgs;
+    string interpreter_name_str;
+    bool code_to_run_exists;
+    string code_to_run;
+};
+
+
+size_t libcurl_write_callback(char *ptr, size_t size, size_t nmemb, std::string *data);
+std::string read_file(const std::string &filename);
+void write_message_text_to_vbox(GtkWidget *message_vbox, GtkWidget *scrolled_window, string message);
+void add_message_to_message_vbox(ReceiveThreadData *data);
+// This section is for second-thread (receive-message thread) variables and related functions only
+gboolean add_message_to_message_vbox_wrapper(gpointer user_data);
+string find_first_language(string message_received);
+vector<smatch> find_markdown_python(string message);
+vector<smatch> find_markdown_bash(string message);
+void receive_thread_function(ReceiveThreadData *thread_data);
+// This section is for code-execution thread variables and related functions only
+static void run_code(GtkWidget *widget, UIElements *elements);
+static void remove_prompt_do_not_run_code(GtkWidget *widget, UIElements *elements);
+// This section is for main-thread variables and related functions only
+gboolean main_loop_interface(gpointer user_data);
+static void send_message(GtkWidget *widget, UIElements *elements);
+
+
+
+/*
+ * This section is for utility variables and related functions only
+ * ------------------------------------------------------------------------------------------*/
 
 /*
  * This function is the callback function for the libcurl write function.
@@ -130,17 +176,6 @@ void write_message_text_to_vbox(GtkWidget *message_vbox, GtkWidget *scrolled_win
 
 }
 
-static void run_code(GtkWidget *widget, UIElements *elements)
-{
-
-}
-
-static void remove_prompt_do_not_run_code(GtkWidget *widget, UIElements *elements)
-{
-    // Remove the prompt vbox from the window hbox
-
-}
-
 /* ------------------------------------------------------------------------------------------
  * End of utility variables and related functions only section
  */
@@ -150,22 +185,6 @@ static void remove_prompt_do_not_run_code(GtkWidget *widget, UIElements *element
 /*
  * This section is for second-thread (receive-message thread) variables and related functions only
  * ------------------------------------------------------------------------------------------*/
-
-// This struct is used to pass data to and from the thread function.
-struct ReceiveThreadData
-{
-    GtkWidget *window_hbox;
-    GtkWidget *message_vbox;
-    GtkWidget *scrolled_window;
-    GAsyncQueue *queue;
-    GMainContext *context;
-    mutex *mtx;
-    string completion_url;
-    chat *chat_msgs;
-    string interpreter_name_str;
-    bool code_to_run_exists;
-    string code_to_run;
-};
 
 /*
  * This function is responsible for writing a new text box to the message vbox.
@@ -560,10 +579,16 @@ void receive_thread_function(ReceiveThreadData *thread_data)
  * This section is for code-execution thread variables and related functions only
  * ------------------------------------------------------------------------------------------*/
 
-    struct ExecutionReceiveThreadData
-    {
-        
-    };
+static void run_code(GtkWidget *widget, UIElements *elements)
+{
+
+}
+
+static void remove_prompt_do_not_run_code(GtkWidget *widget, UIElements *elements)
+{
+    // Remove the prompt vbox from the window hbox
+
+}
 
 /* ------------------------------------------------------------------------------------------
  * End of code-execution-thread variables and related functions only section
